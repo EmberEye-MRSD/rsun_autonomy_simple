@@ -1,0 +1,20 @@
+{
+   "racks": [
+        {
+            "id":0,
+            "pose":
+            {
+                "position": [2.0, -2.50, 0.0],
+                "yaw": 0
+            },
+            "size":
+            {
+                "length":5.0,
+                "height":2.50,
+                "depth": 0.50
+            },
+            "shelf_start_hgt":0.50
+        }
+    ]
+
+}

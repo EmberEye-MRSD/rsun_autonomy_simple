@@ -1,0 +1,46 @@
+<launch>
+	<!-- vim: set ft=xml noet : -->
+	
+
+	<arg name="fcu_url" default="udp://127.0.0.1:14551@:14551" />
+	<arg name="gcs_url" default="" />
+	<arg name="tgt_system" default="1" />
+	<arg name="tgt_component" default="1" />
+	<arg name="log_output" default="screen" />
+	<arg name="fcu_protocol" default="v2.0" />
+	<arg name="respawn_mavros" default="false" />
+	<arg name="rviz" default="false"/>
+	
+
+	<include file="$(find mavros)/launch/node.launch">
+		<arg name="pluginlists_yaml" value="$(find voxl_autonomy)/cfg/px4_pluginlists.yaml" />
+		<arg name="config_yaml" value="$(find voxl_autonomy)/cfg/px4_config.yaml" />
+
+		<arg name="fcu_url" value="$(arg fcu_url)" />
+		<arg name="gcs_url" value="$(arg gcs_url)" />
+		<arg name="tgt_system" value="$(arg tgt_system)" />
+		<arg name="tgt_component" value="$(arg tgt_component)" />
+		<arg name="log_output" value="$(arg log_output)" />
+		<arg name="fcu_protocol" value="$(arg fcu_protocol)" />
+		<arg name="respawn_mavros" default="$(arg respawn_mavros)" />
+	</include>
+
+	<!-- Associate MAVROS frames with VOXL frames -->
+	<node pkg="tf" type="static_transform_publisher" name="voxl_mavros_tf" args="0.04 0 -0.045 0 0 0 /base_link_frd /body 10"/>
+
+	<!-- Node to read 3D-to-2D binned VOA data sent by VVPX4 from MAVLink and publish to ROS-->
+	<node pkg="voxl_ros_utils" type="mavros_voa_reader.py" name="voxl_voa_reader" output="screen" cwd="node">
+		<remap from="/laser/scan" to="/laser/scan"/>
+	</node>
+
+	<!-- Add offset frame corressponding to VOXL fixed frame -->
+	<node pkg="tf" type="static_transform_publisher" name="map_offset_tf" args="0 0 0 1.57079632679 0 0 /map /map_offset 1"/>
+
+	<!-- VOXL TF Publisher -->
+	<node pkg="voxl_ros_utils" type="tf_publisher.py" name="voxl_tf_publisher" output="screen" cwd="node"/>
+	
+	<!-- RVIz Visualisation Markers -->
+	<include file="$(find voxl_autonomy)/launch/mav_viz.launch">
+		<arg name="use_rviz" value="$(arg rviz)"/>
+	</include>
+</launch>

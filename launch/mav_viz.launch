@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="use_rviz" default="false"/>
+	
+    <!-- MAV RViz Visualization Tool-->
+    <node name="mav_viz" type="visualization" pkg="mavros_extras" output="screen">
+		<param name="fixed_frame_id"  value = "map_offset"/>
+		<param name="child_frame_id"  value = "base_link"/>
+		<param name="num_rotors"  value = "4"/>
+		<param name="arm_len"  value = "0.25"/>
+		<param name="body_width"  value = "0.075"/>
+		<param name="body_height"  value = "0.075"/>
+		<param name="prop_direction"  value = "1"/>
+		<param name="marker_scale" value="0.75"/>
+
+
+		<remap from="local_position" to="/mavros/local_position/pose"/>
+		<remap from="local_setpoint" to="/mavros/setpoint_position/local"/>
+	</node>
+
+	<group if="$(arg use_rviz)">
+		<node type="rviz" name="rviz" pkg="rviz" args="-d $(find voxl_autonomy)/rviz/config.rviz" />
+	</group>
+
+</launch>
