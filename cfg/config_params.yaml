@@ -2,12 +2,12 @@
 # test:
   # General Params 
   enable_voxl_offset: true # True if only using VIO/HereFlow (i.e no external heading sources)
-  takeoff_height:     1.0  # Auto-Takeoff height [in m]
+  takeoff_height:     1.50  # Auto-Takeoff height [in m]
 
   # Waypoint Execution Behaviour
   yaw_hold:       true # Enable to make the drone face the intial heading at all times, False to face towards next WP
-  speed_hor_max:  0.75 # Maximum horizontal speed limit [in m/s] (Manual and Auto modes)
-  speed_vert_max: 0.75 # Maximum vertical speed limit [in m/s] (Manual and Auto modes)
+  speed_hor_max:  2.0 # Maximum horizontal speed limit [in m/s] (Manual and Auto modes)
+  speed_vert_max: 2.0 # Maximum vertical speed limit [in m/s] (Manual and Auto modes)
   wp_radius:      0.25 # Waypoint radius tolerance [in m]
   wp_mode:        1 # Set to '0' for reading WPs from file (from ../misc/waypoints.txt), '1' for Generating Grid WPs (from ../misc/rack_info.json)
   exec_mode:      1 # Set to '0' for Pose only setpoints, '1' for Pose-Vel setpoints (smoother)
@@ -23,61 +23,6 @@
   enable_rack_facing: false # Set to true to make the drone face the rack
   grid_scan_mode: 'HOR' # Grid planning mode
   num_grid_levels: 5  # Number of scanning levels (hor/vert respectively)
-
-  # Collision Prevention Params
-  enable_avoidance: false # Enable/Disbale Collision prevention feature
-  # Different angular sectors to be used for avoidance
-  avoid_sectors:  [
-          {
-            id: 'front', # user-defined ID, should be unique for each sector
-            fov: deg(90), # desired FOV of the sector (sensor FOV greater than this ideally) [deg]
-            offset: deg(0), # angular offset of the sector central axis from front of the drone, CCW is +ve [deg]
-            prx_limit: 1.0 # Critical distance limit to trigger collsision flag [m]
-          }
-          # ,
-          # {
-          #   id: 'rear',
-          #   fov: deg(90),
-          #   offset: deg(180),
-          #   prx_limit: 1.0
-          # }
-          # ,
-          # {
-          #   id: 'left',
-          #   fov: deg(90),
-          #   offset: deg(90),
-          #   prx_limit: 1.00
-          # }
-          # ,
-          # {
-          #   id: 'right',
-          #   fov: deg(90),
-          #   offset: deg(-90),
-          #   prx_limit: 1.00
-          # }
-        ]
-  enable_dynamic_avoidance: false # Toggle dynamic avoidance behaviour. Pre-req: 'enable_avoidance' needs to be true
-  dyn_avoid_gain:           1.25  # Gain to alter the evasion responsiveness of the MAV 
-  enable_wall_following:    false
-  wall_follow_gain:         5.0
-  scan_data_timeout:        2.0   # VOA data timeout limit [secs]
-  collision_reset_timeout:  5.0   # Add persistence to the collision detection to avoid jerky behaviour [secs]
-
-  # Precision Landing Params
-  enable_prec_land:       false # Toggle precision landing
-  land_speed:             0.20  # Precision landing descent speed
-  land_offset_x:          -0.25 # Landing offset (in FF) to ensure Marker in tracking cam FOV
-  land_offset_y:           0.0  # Landing offset (in FF) to ensure Marker in tracking cam FOV
-  prec_land_critical_hgt: 0.25  # Set to height at which the marker is no longer visible, vehicle will initiate normal landing from here
-  tag_pose_timeout:       3.0   # If no tag data received beyond this interval, failover to simple landing
-  fiducial_tag_type:      0     # For VOXL tag detector set this to '0', When using ROS aruco_detect pkg set this to '1' 
-  target_aruco_tag_id:    1     # Used only when using the Aruco setting above
-
-  # VIO Monitor and Failsafe Params
-  enable_vio_failsafe:      false # Toggle QVIO failsafe, only engaged in offboard mode
-  qvio_quality_threshold:   0     # Minimum QVIO quality threshold
-  qvio_min_feature_count:   5     # Minimum QVIO feature count
-  vio_failure_timeout:      2.0   # Wait for these many seconds after failure to check the status again
 
   # PX4 parameter value checklist
   # Set all param values to be checked here. Mission won't start unless all param checks pass
