@@ -25,7 +25,7 @@ class ExplorationInterface(BaseInterface):
         self.px4_cmd.coordinate_frame = PositionTarget.FRAME_LOCAL_NED
         # self.px4_cmd.type_mask = PositionTarget.IGNORE_YAW_RATE
 
-        self.exp_state = ExplorationState().INIT
+        # self.exp_state = ExplorationState().INIT
 
     def cmd_cb(self, msg):
         # msg = PositionCommand()
@@ -49,13 +49,13 @@ class ExplorationInterface(BaseInterface):
 
     def exp_state_cb(self, msg):
         if msg.state <= ExplorationState.WAIT_TRIGGER:
-            self.interface_state = self.states.STATE_INIT
+            self.interface_state = self.states.INIT_READY
 
         if msg.state > ExplorationState.WAIT_TRIGGER and msg.state != ExplorationState.FINISH:
-            self.interface_state = self.states.STATE_ACTIVE
+            self.interface_state = self.states.ACTIVE
 
         if msg.state == ExplorationState.FINISH:
-            self.interface_state = self.states.STATE_DONE
+            self.interface_state = self.states.DONE
 
     def get_control_command(self):
         return self.px4_cmd
@@ -73,7 +73,7 @@ class ExplorationInterface(BaseInterface):
         path.poses.append(pose)
         self.trigger_pub.publish(path)
         rospy.loginfo("[ExplorationInterface] Exploration Triggered")
-        self.interface_state = self.states.STATE_ACTIVE
+        self.interface_state = self.states.ACTIVE
 
     def get_current_state(self):
         return self.interface_state

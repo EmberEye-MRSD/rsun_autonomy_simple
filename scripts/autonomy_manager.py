@@ -9,6 +9,7 @@ sys.path.append('../utils')
 from mavros_api import MavrosAPI
 from interface_state import InterfaceStates
 from exploration_interface import ExplorationInterface
+from planner_interface import PlannerInterface
 
 class ManagerState():
     def __init__(self):
@@ -16,9 +17,10 @@ class ManagerState():
         self.TAKEOFF = 1
         self.HOVER = 2
         self.ACTIVE_STANDBY = 3
-        self.ACTIVE_NAV = 4
-        self.LANDING = 5
-        self.DONE = 6
+        self.ACTIVE_P2P = 4
+        self.ACTIVE_EXP = 5
+        self.LANDING = 6
+        self.MISSION_DONE = 7
 
     def to_string(self, state):
         if state == self.GROUNDED:
@@ -29,18 +31,20 @@ class ManagerState():
             return "HOVER"
         elif state == self.ACTIVE_STANDBY:
             return "ACTIVE_STANDBY"
-        elif state == self.ACTIVE_NAV:
-            return "ACTIVE_NAV"
+        elif state == self.ACTIVE_P2P:
+            return "ACTIVE_P2P"
+        elif state == self.ACTIVE_EXP:
+            return "ACTIVE_EXP"
         elif state == self.LANDING:
             return "LANDING"
-        elif state == self.DONE:
+        elif state == self.MISSION_DONE:
             return "DONE"
         else:
             return "UNKNOWN"
 
 STATE = ManagerState()
 
-MODE_DICT = {0: "WAYPOINT", 1: "EXPLORATION", 2: "P2P_NAVIGATION"}
+MODE_DICT = {0: "WAYPOINT", 1: "P2P_NAVIGATION", 2: "EXPLORATION"}
 
 class AutonomyManager():
 
@@ -63,8 +67,8 @@ class AutonomyManager():
         self.px4_param_checklist    = rospy.get_param('~px4_param_checklist')
         self.nav_hdg_offset         = rospy.get_param('~heading_offset_deg', 0.0)
         self.use_extern_yaw         = rospy.get_param('~read_extern_yaw', False)
-        self.nav_mode               = rospy.get_param('~nav_mode', 1) # 0: Waypoints, 1: Exploration, 2: P2P Navigation
-
+        # self.nav_mode               = rospy.get_param('~nav_mode', 2) # 0: Waypoints, 1: Exploration, 2: P2P Navigation
+        self.nav_mode               = 0
         # Some flags
         self.flag_wp_ready = False # Flag to indicate successful parsing of the .txt file
 
@@ -100,11 +104,16 @@ class AutonomyManager():
 
         # Exploration Interface
         self.interface_dict = {
-            1: ExplorationInterface()
+            1: PlannerInterface(),
+            2: ExplorationInterface()
         }
 
         #  FSM loop
         self.fsm_timer = rospy.Timer(rospy.Duration(0.02), self.fsm_cb)
+
+        self.P2P_again = False
+        self.home_flag = False
+        self.was_active = False
 
     def change_state(self, new_state):
         str = f"[AutonomyManager] State Change! [{STATE.to_string(self.sys_state)}] >>> [{STATE.to_string(new_state)}]"
@@ -114,31 +123,90 @@ class AutonomyManager():
 
     # FSM callback
     def fsm_cb(self, event):
+
         rospy.logwarn_throttle(5.0, "[AutonomyManager] FSM Current State: " + STATE.to_string(self.sys_state))
+
         if self.sys_state == STATE.GROUNDED:
             success = self.do_hover()
             if success:
                 self.change_state(STATE.HOVER)
+
         if self.sys_state == STATE.HOVER:
             if self.api.set_offboard():
                 self.change_state(STATE.ACTIVE_STANDBY)
+
         if self.sys_state == STATE.ACTIVE_STANDBY:
             # Check if in OFFBOARD mode
             if self.api.get_curr_mode() == "OFFBOARD":
-                self.change_state(STATE.ACTIVE_NAV)
+                self.change_state(STATE.ACTIVE_P2P)
             else:
                 self.change_state(STATE.HOVER)
-        if self.sys_state == STATE.ACTIVE_NAV:
-            interface = self.interface_dict[self.nav_mode]
-            if interface.get_current_state() == InterfaceStates().STATE_INIT:
-                interface.set_active()
-            if interface.get_current_state() == InterfaceStates().STATE_ACTIVE:
+
+            # if self.sys_state ==
+
+        if self.sys_state == STATE.ACTIVE_P2P:
+            # self.nav_node = 1
+            ## get planner interface object
+            interface = self.interface_dict[1]
+
+            ## If failure mode just land for now
+            if interface.get_current_state() == InterfaceStates().FAILURE:
+                rospy.logerr("[AutonomyManager] P2P Node Encountered a Failure!")
+                # self.change_state(STATE.LANDING)
+
+            if interface.get_current_state() == InterfaceStates().INIT_READY:
+                if interface.goal_received:
+                    # rospy.loginfo("[AutonomyManager] Trigger Approved!")
+                    interface.send_trigger = True
+
+
+            if interface.get_current_state() == InterfaceStates().ACTIVE:
                 self.api.publish_setpoints(interface.get_control_command())
-            if interface.get_current_state() == InterfaceStates().STATE_DONE:
-                self.change_state(STATE.LANDING)
+                if self.P2P_again:
+                    self.was_active = True
+            
+            if interface.get_current_state() == InterfaceStates().DONE:
+                # rospy.loginfo("[AutonomyManager] Inside P2P Done!")
+                if interface.goal_received:
+                    # rospy.loginfo("[AutonomyManager] Received Another goal!")
+                    interface.send_trigger = True
+                    if self.P2P_again:
+                        self.home_flag = True
+            #         interface.send_trigger = True
+
+                if interface.entered_exploration_area and not self.P2P_again:
+                    self.change_state(STATE.ACTIVE_EXP)
+
+                if self.P2P_again and self.was_active and self.home_flag:
+                    rospy.loginfo("[AutonomyManager] Mission Completed, Landing!")
+                    self.change_state(STATE.LANDING)
+
+
+
+            # if interface.get_current_state() == InterfaceStates().DONE:
+            #     self.change_state(STATE.LANDING)
+                    
+        if self.sys_state == STATE.ACTIVE_EXP:
+            self.nav_node = 2
+
+            interface = self.interface_dict[2]
+
+            if interface.get_current_state() == InterfaceStates().INIT_READY:
+                interface.set_active()
+
+            if interface.get_current_state() == InterfaceStates().ACTIVE:
+                self.api.publish_setpoints(interface.get_control_command())
+
+            if interface.get_current_state() == InterfaceStates().DONE:
+                self.change_state(STATE.ACTIVE_P2P)
+                self.P2P_again = True
+
+            # if interface.get_current_state() == InterfaceStates().DONE:
+            #     self.change_state(STATE.LANDING)
+
         if self.sys_state == STATE.LANDING:
             self.api.do_land()
-            self.change_state(STATE.DONE)
+            self.change_state(STATE.MISSION_DONE)
 
 
     # Main helper fn housing the core mission logic
