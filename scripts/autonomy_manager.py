@@ -108,6 +108,9 @@ class AutonomyManager():
             2: ExplorationInterface()
         }
 
+        planner_obj = self.interface_dict[1]
+
+        
         #  FSM loop
         self.fsm_timer = rospy.Timer(rospy.Duration(0.02), self.fsm_cb)
 
@@ -142,7 +145,6 @@ class AutonomyManager():
             else:
                 self.change_state(STATE.HOVER)
 
-            # if self.sys_state ==
 
         if self.sys_state == STATE.ACTIVE_P2P:
             # self.nav_node = 1

@@ -8,6 +8,8 @@ from autonomous_flight.msg import SystemStatus
 from interface_state import InterfaceStates
 from base_interface import BaseInterface
 from tracking_controller.msg import Target
+# import threading
+# from shared_state import ss
 
 
 class PlannerInterface(BaseInterface):
@@ -58,6 +60,7 @@ class PlannerInterface(BaseInterface):
         self.px4_cmd.yaw = msg.yaw
 
         # If x position is more than a set value (convert it to rosparam later)
+        # should be done with odometry but rn being done with target pose
         if msg.position.x > 11 and not self.entered_exploration_area:
             rospy.loginfo("[PlannerInterface] Entered Exploration Area!")
             self.entered_exploration_area = True
@@ -73,14 +76,16 @@ class PlannerInterface(BaseInterface):
         
         ## check if msg not empty
         if msg.pose.position.x == 0 and msg.pose.position.y == 0 and msg.pose.position.z == 0:
-            rospy.loginfo("[PlannerInterface] Empty Trigger!")
+            rospy.loginfo("[PlannerInterface] Zero Trigger!")
             self.goal_received = False
+            # ss.goal_received = False
         else:
             if (self.interface_state == self.states.DONE):
                 rospy.loginfo("[PlannerInterface] Another goal received")
             else:
                 rospy.loginfo("[PlannerInterface] Trigger Received!")
             self.goal_received = True
+            # ss.goal_received = True
             
             self.set_active(msg)
 

@@ -25,7 +25,6 @@ class ExplorationInterface(BaseInterface):
         self.px4_cmd.coordinate_frame = PositionTarget.FRAME_LOCAL_NED
         # self.px4_cmd.type_mask = PositionTarget.IGNORE_YAW_RATE
 
-        # self.exp_state = ExplorationState().INIT
 
     def cmd_cb(self, msg):
         # msg = PositionCommand()
